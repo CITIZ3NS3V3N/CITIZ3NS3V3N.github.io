@@ -1,0 +1,45 @@
+# Site settings
+title: Elegant Image Host
+description: A minimal and modern private image hosting solution
+baseurl: ""
+url: "https://yourusername.github.io"
+
+# Build settings
+markdown: kramdown
+theme: minima
+plugins:
+  - jekyll-feed
+
+# Custom settings
+max_width: 1200px
+accent_color: "#4a90e2"
+
+# Navigation
+header_pages:
+  - about.md
+  - gallery.md
+
+# Footer
+footer_text: "© 2023 Elegant Image Host. All rights reserved."
+
+# Gallery settings
+gallery:
+  columns: 3
+  image_quality: 85
+  lazy_loading: true
+
+# Security
+allow_sign_up: false
+require_login: true
+
+# Performance
+use_webp: true
+enable_caching: true
+
+# Exclude files from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .gitignore
