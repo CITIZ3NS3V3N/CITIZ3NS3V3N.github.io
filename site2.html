@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Minimal File Host</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #matrix-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .container {
+            background-color: rgba(100, 98, 98, 0.9);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        input, button {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #file-preview {
+            margin-top: 20px;
+            text-align: center;
+        }
+        #preview-content {
+            max-width: 100%;
+            max-height: 300px;
+            display: none;
+        }
+        .signup-link {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .signup-link a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+        .tab-buttons {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .tab-button:hover {
+            background-color: #45a049;
+        }
+        .gallery-item {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .gallery-item img {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+        }
+        .gallery-item button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-background"></canvas>
+    <div class="container" id="login-container">
+        <h1>Login</h1>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <div class="signup-link">
+            <a href="#" id="signup-link">Don't have an account? Sign up</a>
+        </div>
+    </div>
+
+    <div class="container" id="signup-container" style="display: none;">
+        <h1>Sign Up</h1>
+        <form id="signup-form">
+            <input type="text" id="new-username" placeholder="New Username" required>
+            <input type="password" id="new-password" placeholder="New Password" required>
+            <button type="submit">Create Account</button>
+        </form>
+        <div class="signup-link">
+            <a href="#" id="login-link">Already have an account? Log in</a>
+        </div>
+    </div>
+
+    <div class="container" id="main-container" style="display: none;">
+        <div class="tab-buttons">
+            <button class="tab-button" id="upload-tab">Upload</button>
+            <button class="tab-button" id="gallery-tab">Gallery</button>
+        </div>
+        <div id="upload-container">
+            <h1>Private File Host</h1>
+            <form id="upload-form">
+                <input type="file" id="file-input" required>
+                <button type="submit">Upload File</button>
+            </form>
+            <div id="file-preview">
+                <div id="preview-content"></div>
+            </div>
+        </div>
+        <div id="gallery-container" style="display: none;">
+            <h1>Your Gallery</h1>
+            <div id="gallery-items"></div>
+        </div>
+        <button id="logout-button">Logout</button>
+    </div>
+
+    <script>
+        const loginContainer = document.getElementById('login-container');
+        const signupContainer = document.getElementById('signup-container');
+        const mainContainer = document.getElementById('main-container');
+        const uploadContainer = document.getElementById('upload-container');
+        const galleryContainer = document.getElementById('gallery-container');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const uploadForm = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file-input');
+        const previewContent = document.getElementById('preview-content');
+        const logoutButton = document.getElementById('logout-button');
+        const signupLink = document.getElementById('signup-link');
+        const loginLink = document.getElementById('login-link');
+        const uploadTab = document.getElementById('upload-tab');
+        const galleryTab = document.getElementById('gallery-tab');
+        const galleryItems = document.getElementById('gallery-items');
+
+        let uploadedFiles = [];
+
+        const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB in bytes
+
+        function showElement(element) {
+            element.style.display = 'block';
+        }
+
+        function hideElement(element) {
+            element.style.display = 'none';
+        }
+
+        function clearInputs(...inputs) {
+            inputs.forEach(input => input.value = '');
+        }
+
+        signupLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideElement(loginContainer);
+            showElement(signupContainer);
+        });
+
+        loginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            hideElement(signupContainer);
+            showElement(loginContainer);
+        });
+
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newUsername = document.getElementById('new-username').value;
+            const newPassword = document.getElementById('new-password').value;
+            // Here you would typically send this data to your server to set up the account
+            alert('Account created successfully. Please log in.');
+            hideElement(signupContainer);
+            showElement(loginContainer);
+            clearInputs(document.getElementById('new-username'), document.getElementById('new-password'));
+        });
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            // Here you would typically verify the login credentials with your server
+            if (username && password) { // This is a placeholder condition
+                hideElement(loginContainer);
+                showElement(mainContainer);
+                showElement(uploadContainer);
+            } else {
+                alert('Invalid credentials');
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > MAX_FILE_SIZE) {
+                    alert('File size exceeds 500MB limit.');
+                    fileInput.value = ''; // Clear the file input
+                    previewContent.innerHTML = '';
+                    hideElement(previewContent);
+                    return;
+                }
+                
+                previewContent.innerHTML = `File selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+                showElement(previewContent);
+
+                const previewButton = document.createElement('button');
+                previewButton.textContent = 'Preview File';
+                previewButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    previewFile(file);
+                });
+                previewContent.appendChild(previewButton);
+            }
+        });
+
+        function previewFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                let previewElement;
+
+                if (file.type.startsWith('image/')) {
+                    previewElement = document.createElement('img');
+                    previewElement.src = content;
+                } else if (file.type.startsWith('video/')) {
+                    previewElement = document.createElement('video');
+                    previewElement.src = content;
+                    previewElement.controls = true;
+                } else if (file.type.startsWith('audio/')) {
+                    previewElement = document.createElement('audio');
+                    previewElement.src = content;
+                    previewElement.controls = true;
+                } else {
+                    previewElement = document.createElement('iframe');
+                    previewElement.src = content;
+                }
+
+                previewElement.style.maxWidth = '100%';
+                previewElement.style.maxHeight = '300px';
+
+                previewContent.innerHTML = '';
+                previewContent.appendChild(previewElement);
+            };
+
+            if (file.type.startsWith('text/') || file.type === 'application/pdf') {
+                reader.readAsDataURL(file);
+            } else {
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        uploadForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const file = fileInput.files[0];
+            if (file) {
+                if (file.size > MAX_FILE_SIZE) {
+                    alert('File size exceeds 500MB limit.');
+                    return;
+                }
+                // Here you would typically send the file to your server
+                alert('File upload simulation complete. In a real application, the file would be securely stored on your private server.');
+                // Simulate adding the file to the gallery
+                uploadedFiles.push(file);
+                updateGallery();
+                fileInput.value = ''; // Clear the file input
+                previewContent.innerHTML = '';
+                hideElement(previewContent);
+            }
+        });
+
+        logoutButton.addEventListener('click', () => {
+            hideElement(mainContainer);
+            showElement(loginContainer);
+            clearInputs(document.getElementById('username'), document.getElementById('password'));
+            previewContent.innerHTML = '';
+            hideElement(previewContent);
+            uploadedFiles = [];
+            updateGallery();
+        });
+
+        uploadTab.addEventListener('click', () => {
+            showElement(uploadContainer);
+            hideElement(galleryContainer);
+        });
+
+        galleryTab.addEventListener('click', () => {
+            hideElement(uploadContainer);
+            showElement(galleryContainer);
+            updateGallery();
+        });
+
+        function updateGallery() {
+            galleryItems.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'gallery-item';
+                
+                const fileInfo = document.createElement('p');
+                fileInfo.textContent = `${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+                
+                const previewButton = document.createElement('button');
+                previewButton.textContent = 'Preview';
+                previewButton.addEventListener('click', () => {
+                    previewFile(file);
+                });
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => {
+                    uploadedFiles.splice(index, 1);
+                    updateGallery();
+                });
+                
+                galleryItem.appendChild(fileInfo);
+                galleryItem.appendChild(previewButton);
+                galleryItem.appendChild(deleteButton);
+                galleryItems.appendChild(galleryItem);
+            });
+        }
+
+        // Matrix background
+        const canvas = document.getElementById('matrix-background');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const nums = '0123456789';
+
+        const alphabet = katakana + latin + nums;
+
+        const fontSize = 16;
+        const columns = Math.floor(canvas.width / fontSize);
+
+        const rainDrops = Array(columns).fill(1);
+
+        const draw = () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet[Math.floor(Math.random() * alphabet.length)];
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        };
+
+        let animationId;
+
+        function animate() {
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Interactive matrix effect
+        canvas.addEventListener('mousemove', (e) => {
+            const column = Math.floor(e.clientX / fontSize);
+            rainDrops[column] = Math.floor(e.clientY / fontSize);
+        });
+
+        // Resize event listener
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            rainDrops.length = Math.floor(canvas.width / fontSize);
+            rainDrops.fill(1);
+        });
+
+        // Clean up
+        window.addEventListener('beforeunload', () => {
+            cancelAnimationFrame(animationId);
+        });
+    </script>
+</body>
+</html>
