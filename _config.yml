@@ -1,8 +1,8 @@
 # Site settings
-title: Elegant Image Host
-description: A minimal and modern private image hosting solution
+title: THE FIVE-OH
+description: 🌐 FIVE-OH IS WORLDWIDE 🌐
 baseurl: ""
-url: "https://yourusername.github.io"
+url: "https://citiz3ns3v3n.github.io/"
 
 # Build settings
 markdown: kramdown
@@ -43,12 +43,6 @@ enable_https_only: true
 use_webp: true
 enable_caching: true
 compress_html: true
-
-# SEO and Analytics
-google_analytics: UA-XXXXXXXX-X
-social:
-  twitter: yourtwitterhandle
-  github: yourgithubhandle
 
 # Exclude files from processing
 exclude:
